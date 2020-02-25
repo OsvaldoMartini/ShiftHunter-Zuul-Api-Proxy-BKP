@@ -43,7 +43,8 @@ public class TaskProcessorGenData {
 		System.out.println("MAVEN_HOME " + mavenHome);
 
 		// String url = "maven://com.shifthunter.tasks:ppmtool-task:jar:0.0.1-SNAPSHOT";
-		String url = "maven://com.shifthunter.tasks:shifthunter-task-data-binario:jar:0.0.1-SNAPSHOT";
+		//String url = "maven://com.shifthunter.tasks:shifthunter-task-data-binario:jar:0.0.1-SNAPSHOT";
+		String url = "maven://ch.corner.tasks:corner-task-data-binario:jar:1.0.0";
 		//String url = "maven://com.shifthunter.tasks:shifthunter-task-pulldata:jar:0.0.1-SNAPSHOT";
 		
 		// String url = "classpath://ppmtool-task-0.0.1-SNAPSHOT.jar";

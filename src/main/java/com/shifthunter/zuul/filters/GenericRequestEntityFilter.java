@@ -8,7 +8,9 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.json.JSONObject;
 import org.json.XML;
@@ -38,6 +40,9 @@ public class GenericRequestEntityFilter extends ZuulFilter {
 	@Value("${pathSpecPrefix}")
 	String pathSpecPrefix;
 
+	@Value("${executeDataBinarioTask}")
+	String executeDataBinarioTask;
+
 	@Value("${environment}")
 	String environment;
 
@@ -61,14 +66,29 @@ public class GenericRequestEntityFilter extends ZuulFilter {
 		return 1;
 	}
 
+	@Override
 	public boolean shouldFilter() {
 		RequestContext ctx = RequestContext.getCurrentContext();
 		HttpServletRequest request = ctx.getRequest();
 		String requestUri = request.getRequestURI();
 
-		logger.info("requestURI: ", requestUri.toString());
+		String[] uriArr = requestUri.split("/", -1);
+		String cleanPath = null;
+		for (String path : uriArr) {
+			if (!path.isEmpty()) {
+				cleanPath = Joiner.on(",").skipNulls().join(cleanPath, path);
+			}
+		}
+		uriArr = cleanPath.split(",");
 
-		return true; // context.get("proxy").equals(SERVICE_WS2I45);
+		// if ((ctx.get("v1") != null) && ctx.get("v1").equals("gathering")) {
+		if (uriArr.length > 1) {
+			if (uriArr[0].equalsIgnoreCase("v1") && uriArr[1].equalsIgnoreCase("gathering"))
+				return true;
+
+		}
+
+		return false;
 	}
 
 	private String getBody(final RequestContext context) throws Exception {
@@ -80,6 +100,11 @@ public class GenericRequestEntityFilter extends ZuulFilter {
 	}
 
 	public Object run() {
+
+		logger.info("pathSpecPrefix:" + pathSpecPrefix);
+		logger.info("executeDataBinarioTask:" + executeDataBinarioTask);
+		logger.info("environment:" + environment);
+
 		try {
 			RequestContext context = RequestContext.getCurrentContext();
 			if (context.getRequest().getMethod().equals(HttpMethod.OPTIONS.toString())) {
@@ -138,11 +163,23 @@ public class GenericRequestEntityFilter extends ZuulFilter {
 			// getting the current parameter
 			JsonNode root = mapper.readTree(body); // An Empty Object rep in Json
 
+			boolean executeDataBinario = Boolean.parseBoolean(executeDataBinarioTask);
+
+			// GETs Parameters qna Creates the #QUERY#
 			for (Map.Entry<String, String[]> entry : parameterMap.entrySet()) {
 				String key = entry.getKey();
 				String[] values = entry.getValue();
 				// newParameterMap.put("#QUERY#." + key, Arrays.asList(values));
-				((ObjectNode) root).put("#QUERY#." + key, values[0]);
+
+				// Excludes the "executeDataBinarioTask" as @param to Be Created
+				// this i s the name of the Param GET
+				if (!key.equalsIgnoreCase("executeDataBinarioTask")) {
+					((ObjectNode) root).put("#QUERY#." + key, values[0]);
+
+				} else {
+					// Turn ON or Off
+					executeDataBinario = Boolean.parseBoolean(values[0]);
+				}
 
 			}
 
@@ -180,16 +217,22 @@ public class GenericRequestEntityFilter extends ZuulFilter {
 			responseProxy.msg = "RESPONSE SUCCESS";
 			responseProxy.code = "307";
 
+			resultBlock = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(responseProxy);
+			// #### Response Headers #####
+			HttpServletResponse servletResponse = context.getResponse();
+			servletResponse.setContentType("application/json");
+
 			context.setResponseBody(resultBlock); // Temporary Result Response
 			context.setResponseStatusCode(307);
 
 			// Reverse fieldsInLine
 			// ReverseTextToJson(resultBlock);
-
-			TimeUnit.SECONDS.sleep(15);
-			columnRequest = Joiner.on(",").skipNulls().join(pathSpecPrefix, mainOper);
-			taskGenData.publishRequest(columnRequest, mainOper);
-			logger.info("TaskGenData  --> Was sended to the \"BUS\"");
+			if (executeDataBinario) {
+				TimeUnit.SECONDS.sleep(10);
+				columnRequest = Joiner.on(",").skipNulls().join(pathSpecPrefix, mainOper);
+				taskGenData.publishRequest(columnRequest, mainOper);
+				logger.info("TaskGenData  --> Was sended to the \"BUS\"");
+			}
 
 			return null;
 

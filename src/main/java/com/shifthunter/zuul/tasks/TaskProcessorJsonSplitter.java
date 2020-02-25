@@ -41,7 +41,8 @@ public class TaskProcessorJsonSplitter {
 		String mavenHome = System.getenv("MAVEN_HOME");
 		System.out.println("MAVEN_HOME " + mavenHome);
 
-		String url = "maven://com.shifthunter.tasks:shifthunter-task-json-splitter:jar:0.0.1-SNAPSHOT";
+		//String url = "maven://com.shifthunter.tasks:shifthunter-task-json-splitter:jar:0.0.1-SNAPSHOT";
+		String url = "maven://ch.corner.tasks:task-splitter-fields-in-file:jar:1.0.0";
 
 		// List<String> input = new
 		// ArrayList<String>(Arrays.asList(payload.split(",")));
